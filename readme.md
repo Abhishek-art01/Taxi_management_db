@@ -54,44 +54,6 @@ The system connects to a **PostgreSQL** database containing the following key ta
 ---
 
 ## <a name="project-structure"></a>Project Structure
-# 🚖 Taxi Travel Management System
-
-_A centralized web application to automate corporate taxi bookings, streamline employee travel tracking, and eliminate manual redundancy using Streamlit and PostgreSQL._
-
----
-
-## 📌 Table of Contents
-- [Overview](#overview)
-- [Business Problem & Motivation](#business-problem--motivation)
-- [Project Structure](#project-structure)
-- [Database & Schema](#database--schema)
-- [Tools & Technologies](#tools--technologies)
-- [Key Features](#key-features)
-- [How to Run This Project](#how-to-run-this-project)
-- [Future Roadmap](#future-roadmap)
-- [Author & Contact](#author--contact)
-
----
-
-## <a name="overview"></a>Overview
-This project facilitates the digital transformation of corporate transport operations. It replaces fragmented excel sheets and manual logbooks with a robust database application. The system allows admin users to instantly search trip details, assign employees to vehicles in bulk, generate unique voucher codes, and maintain a secure historical record for auditing and vendor reconciliation.
-
----
-
-## <a name="business-problem--motivation"></a>Business Problem & Motivation
-Managing employee transport via manual methods (Excel/Email/Paper) creates significant operational bottlenecks:
-
-* **Operational Inefficiency:** Manually copying employee details (Name, ID, Address) from dump files to booking logs is slow and error-prone, especially during high-volume shift changes.
-* **Data Integrity & Duplication:** Without system validation, duplicate voucher numbers are often issued, leading to vendor billing disputes.
-* **Lack of Visibility:** Transport teams struggle to track "Who traveled in which cab?" effectively. Retrieving historical data for audits is time-consuming.
-* **Cost Leakage:** Inability to optimize cab occupancy (grouping employees effectively) often results in higher travel costs.
-* **Vendor Reconciliation:** manual logs make it difficult to verify vendor invoices against actual trips taken.
-
-**The Solution:** This system acts as a bridge between raw transport data and finalized bookings, enforcing unique vouchers, validating employee data, and saving distinct records for every passenger.
-
----
-
-## <a name="project-structure"></a>Project Structure
 The project follows a modular structure to separate data, logic, and configuration:
 
 ```text
