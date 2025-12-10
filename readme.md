@@ -67,9 +67,9 @@ project_root/
 │   └── manual_files/              # Source for Manual/Ad-hoc trip data
 │
 ├── images/ 
-│       ├──dashboard_preview.png|  # UI screenshots and assets
-│       ├──login_preview.png|      # UI screenshots and assets
-│       ├──trip_preview.png|       # UI screenshots and assets
+│       ├──dashboard_preview.png   # UI screenshots and assets
+│       ├──login_preview.png       # UI screenshots and assets
+│       ├──trip_preview.png        # UI screenshots and assets
 │
 ├── scripts/                       # Application source code
 │   ├── data_loader_src.py         # ETL scripts to load dump data into DB
@@ -78,3 +78,87 @@ project_root/
 ├── .gitignore                     # Git ignore rules (secrets, venv, etc.)
 ├── readme.md                      # Project documentation
 └── requirements.txt               # Python dependencies
+
+
+## <a name="key-features--logic"></a>Key Features & Logic
+
+### 1. Hybrid Search Logic
+* **Smart Lookup:** Automatically detects if a search is for an "Application" or "Manual" trip.
+* **Strict Validation:** Enforces 7-digit Trip IDs for application searches to prevent bad data entry.
+* **Auto-Fill:** Fetches Employee Name, Gender, and Address instantly, eliminating manual typing.
+
+### 2. Intelligent Voucher Management
+* **Uniqueness Check:** The system queries the database in real-time to ensure a voucher number hasn't been used before allowing a save.
+* **Smart Suffixing:** If multiple employees are selected for one trip (e.g., Carpooling), the system automatically splits the voucher (e.g., `9001A`, `9001B`) while keeping the base number linked.
+
+### 3. Bulk Operations
+* **Multi-Select Interface:** A checkbox-enabled table allows the user to select specific employees from a group for a single trip.
+* **Batch Save:** Writes multiple records (one per employee) to the database in a single transaction.
+
+---
+
+## <a name="user-interface"></a>User Interface
+
+The application utilizes a compact "Single Page" design to maximize efficiency for power users:
+
+* **Tabbed Navigation:**
+    * **📝 Entry Tab:** The main workspace for processing new requests. It splits the screen between "Search Results" (Left) and "Entry Form" (Right) to avoid scrolling.
+    * **📊 Records Tab:** A read-only view of historical data with filtering capabilities.
+* **Dynamic Forms:** The search bar changes automatically based on the selected "Travel Type" (Manual vs Application), showing or hiding date fields as needed.
+
+---
+
+## <a name="how-to-run-this-project"></a>How to Run This Project
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/Abhishek-art01/Taxi_management_db.git](https://github.com/Abhishek-art01/Taxi_management_db.git)
+   cd Taxi_management_db
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+
+Got it 👍 — here’s the full Markdown code version you can copy directly:
+
+markdown
+# Install Dependencies
+
+```bash
+pip install -r requirements.txt
+Setup Secrets
+Create a folder named .streamlit in the root directory.
+
+Create a file named secrets.toml inside it.
+
+Add your PostgreSQL credentials:
+
+toml
+[postgres]
+host = "your-db-host"
+dbname = "your-db-name"
+user = "your-user"
+password = "your-password"
+port = 5432
+Run the App
+bash
+streamlit run scripts/taxi_data_entry_web.py
+Future Roadmap
+We plan to scale this system with the following enhancements:
+
+📊 Analytics Dashboard: Add a visual layer to track Total Spend per Vendor, Peak Shift Times, and Cost per Employee.
+
+📱 Mobile Employee View: A mobile-friendly page where employees can check their assigned Cab and Voucher number directly.
+
+📍 Maps Integration: Integrate Google Maps API to visualize drop-off points and optimize route planning.
+
+📧 Automated Notifications: Trigger email or SMS alerts to employees containing their Voucher details immediately upon booking.
+
+🔐 Role-Based Access Control (RBAC): Implement login levels (Admin vs. Viewer) to secure sensitive data.
+
+Author & Contact
+Ayushi Mishra Data Analyst
+
+📧 Email: techclasses0810@gmail.com 
+🔗 LinkedIn: Ayushi Mishra 
+🔗 Portfolio/YouTube: Tech Classes
