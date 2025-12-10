@@ -103,7 +103,7 @@ project_root/
 The application utilizes a compact "Single Page" design to maximize efficiency for power users:
 
 * **Tabbed Navigation:**
-    * **📝 Entry Tab:** The main workspace for processing new requests. It splits the screen between "Search Results" (Left) and "Entry Form" (Right) to avoid scrolling.
+    * **📝 Entry Tab:** The main workspace for processing new requests. It splits the screen between "Search Results" and "Entry Form" to avoid scrolling.
     * **📊 Records Tab:** A read-only view of historical data with filtering capabilities.
 * **Dynamic Forms:** The search bar changes automatically based on the selected "Travel Type" (Manual vs Application), showing or hiding date fields as needed.
 
@@ -120,31 +120,27 @@ The application utilizes a compact "Single Page" design to maximize efficiency f
    ```bash
    pip install -r requirements.txt
 
-Got it 👍 — here’s the full Markdown code version you can copy directly:
 
-markdown
-# Install Dependencies
+3. **Setup Secrets:**
+   * Create a folder named .streamlit in the root directory.
+   * Create a file named secrets.toml inside it.
+   * Add your PostgreSQL credentials:
 
-```bash
-pip install -r requirements.txt
-Setup Secrets
-Create a folder named .streamlit in the root directory.
-
-Create a file named secrets.toml inside it.
-
-Add your PostgreSQL credentials:
-
-toml
+```toml
 [postgres]
 host = "your-db-host"
 dbname = "your-db-name"
 user = "your-user"
 password = "your-password"
 port = 5432
-Run the App
-bash
-streamlit run scripts/taxi_data_entry_web.py
-Future Roadmap
+```
+
+4. **Run the App:**
+   ```bash
+   streamlit run scripts/taxi_data_entry_web.py
+
+
+## <a name="future-roadmap"></a>  Future Roadmap
 We plan to scale this system with the following enhancements:
 
 📊 Analytics Dashboard: Add a visual layer to track Total Spend per Vendor, Peak Shift Times, and Cost per Employee.
@@ -157,9 +153,10 @@ We plan to scale this system with the following enhancements:
 
 🔐 Role-Based Access Control (RBAC): Implement login levels (Admin vs. Viewer) to secure sensitive data.
 
-Author & Contact
-Ayushi Mishra Data Analyst
+---
 
-📧 Email: techclasses0810@gmail.com 
-🔗 LinkedIn: Ayushi Mishra 
-🔗 Portfolio/YouTube: Tech Classes
+## <a name="author--contact"></a>Author & Contact
+Abhishek Pandey Data Analyst
+
+📧 Email: abhishekpandey4577@gmain.com
+🔗 LinkedIn: www.linkedin.com/in/abhishek-art01 
