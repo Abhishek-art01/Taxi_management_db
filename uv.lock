@@ -18,6 +18,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "psycopg2" },
+    { name = "psycopg2-binary" },
 ]
 
 [package.metadata]
