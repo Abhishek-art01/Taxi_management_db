@@ -6,8 +6,8 @@ import numpy as np
 from datetime import datetime
 
 #-------------------CONFIG--------------------
-sourse_folder = r"D:\my_projects\project_p767\Taxi_management_db\data\Vendor_TripSheet_Report"
-destination_folder = r"D:\my_projects\project_p767\Taxi_management_db\data\application_files"
+sourse_folder = r"D:\my_projects\air-india-data\data-dec-2025\Vendor_TripSheet_Report"
+destination_folder = r"D:\my_projects\air-india-data\data-dec-2025\application_files"
 os.makedirs(destination_folder, exist_ok=True)
 PROCESSED_FOLDER = os.path.join(sourse_folder, "processed")
 

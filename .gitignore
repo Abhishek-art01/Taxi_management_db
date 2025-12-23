@@ -1,9 +1,20 @@
-*.streamlit
+# Streamlit configuration
+.streamlit/
 
-*.venv
+# Virtual Environment
+.venv/
+venv/
+env/
 
-*uv.lock
+# Dependency locking (uv)
+uv.lock
 
-*.gitignore
+# IDE / Dev Container settings
+.devcontainer/
 
+# Git ignore file itself (optional, usually kept but you listed it)
+.gitignore
 
+# Python compilation files (Standard good practice)
+__pycache__/
+*.py[cod]
