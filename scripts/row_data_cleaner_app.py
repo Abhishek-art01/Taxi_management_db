@@ -181,8 +181,8 @@ def process_data(uploaded_file):
     # --- FINAL SELECTION ---
     desired_order = [
         'DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
-        'GENDER', 'ADDRESS', 'LANDMARK', 'VEHICLE_NO', 'DIRECTION', 
-        'SHIFT_TIME', 'TRIP_DATE', 'EMP_COUNT', 'PAX_NO', 'MARSHALL', 'REPORTING_LOCATION'
+        'GENDER', 'ADDRESS', 'VEHICLE_NO','SHIFT_TIME', 'TRIP_DATE', 'LANDMARK', 'DIRECTION', 
+        'EMP_COUNT', 'PAX_NO', 'MARSHALL', 'REPORTING_LOCATION'
     ]
     # Ensure all columns exist before reindexing
     existing_cols = [c for c in desired_order if c in final_df.columns]
