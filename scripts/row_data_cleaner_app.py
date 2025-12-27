@@ -232,8 +232,8 @@ def process_data(uploaded_file):
     
     ops_cols = [
         'TRIP_DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
-        'GENDER', 'ADDRESS','PASSENGER_MOBILE', 'LANDMARK', 'VEHICLE_NO', 'DIRECTION', 
-        'HOME_TIME', 'SHIFT_TIME', 'EMP_COUNT', 'PAX_NO', 'MARSHALL', 'REPORTING_LOCATION'
+        'GENDER', 'ADDRESS','PASSENGER_MOBILE', 'LANDMARK', 'REPORTING_LOCATION', 'VEHICLE_NO', 'DIRECTION', 
+        'HOME_TIME', 'SHIFT_TIME', 'MARSHALL'
     ]
     ops_cols = [c for c in ops_cols if c in ops_df.columns]
     ops_df = ops_df[ops_cols]
