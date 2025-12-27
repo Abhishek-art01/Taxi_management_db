@@ -4,7 +4,7 @@ import numpy as np
 import io
 from datetime import datetime, timedelta
 
-# --- HELPER: SAVE BILLING EXCEL (STRICT FORMATTING + TIME FIX) ---
+# --- HELPER: SAVE BILLING EXCEL ---
 def to_excel_billing(df):
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -15,11 +15,11 @@ def to_excel_billing(df):
     
     # --- FORMATS ---
     base_format_props = {
-        'font_size': 13, 'border': 1, 'align': 'center', 'valign': 'vcenter'
+        'font_size': 13, 'border': 1, 'align': 'center', 'valign': 'vcenter', 
+        'text_wrap': True 
     }
     base_format = workbook.add_format(base_format_props)
     
-    # Time Format (Fixes 0.222 issue)
     time_format = workbook.add_format({
         **base_format_props,
         'num_format': 'hh:mm'
@@ -34,8 +34,16 @@ def to_excel_billing(df):
     worksheet.set_row(0, 30) # Header Height
     for col_num, col_name in enumerate(df.columns):
         worksheet.write(0, col_num, col_name, header_format)
-        # Set Width (Format=None to avoid infinite borders)
-        width = 80 if 'ADDRESS' in str(col_name) else 25
+        
+        # Simple Width Logic for Billing
+        col_name_str = str(col_name).upper()
+        if 'ADDRESS' in col_name_str:
+            width = 80
+        elif 'EMPLOYEE_NAME' in col_name_str:
+            width = 40
+        else:
+            width = 25
+            
         worksheet.set_column(col_num, col_num, width, None)
 
     # --- WRITE DATA (Rows 1 to N) ---
@@ -46,8 +54,7 @@ def to_excel_billing(df):
         for col_num, value in enumerate(row_data):
             col_name = df.columns[col_num]
             
-            # Apply Time Format to specific columns
-            if col_name in ['SHIFT_TIME', 'HOME_TIME']:
+            if col_name in ['SHIFT_TIME', 'HOME_TIME', 'PICKUP POINT']:
                 cell_format = time_format
             else:
                 cell_format = base_format
@@ -59,7 +66,7 @@ def to_excel_billing(df):
     output.seek(0)
     return output
 
-# --- HELPER: SAVE OPERATIONS EXCEL (STRICT FORMATTING + TIME FIX) ---
+# --- HELPER: SAVE OPERATIONS EXCEL (CUSTOM WIDTHS + WRAP TEXT) ---
 def to_excel_operations(df):
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -70,11 +77,11 @@ def to_excel_operations(df):
     
     # --- FORMATS ---
     base_format_props = {
-        'font_size': 13, 'border': 1, 'align': 'center', 'valign': 'vcenter'
+        'font_size': 13, 'border': 1, 'align': 'center', 'valign': 'vcenter', 
+        'text_wrap': True
     }
     base_format = workbook.add_format(base_format_props)
     
-    # Time Format (Fixes 0.222 issue)
     time_format = workbook.add_format({
         **base_format_props,
         'num_format': 'hh:mm'
@@ -85,13 +92,40 @@ def to_excel_operations(df):
         'bold': True, 'text_wrap': True, 'fg_color': '#0070C0', 'font_color': '#FFFFFF'
     })
     
-    # --- SETUP COLUMNS (Width Only, No Styles) ---
+    # --- PRECISE COLUMN WIDTHS ---
+    # Mapping specific columns to their requested widths
+    width_map = {
+        'TRIP_DATE': 13,
+        'TRIP_ID': 11,
+        'FLIGHT_NO.': 13,
+        'EMPLOYEE_ID': 12,
+        'EMPLOYEE_NAME': 23,
+        'ADDRESS': 110,
+        'PASSENGER_MOBILE': 14.5,
+        'LANDMARK': 22,
+        'REPORTING_LOCATION': 14,
+        'VEHICLE_NO': 15,
+        'DIRECTION': 12,
+        'PICKUP POINT': 11,
+        'SHIFT_TIME': 13,
+        'GUARD': 15  # Default width for Guard if not specified
+    }
+
+    # Apply widths
     for col_num, col_name in enumerate(df.columns):
-        width = 80 if 'ADDRESS' in str(col_name) else 25
+        col_name_str = str(col_name).upper()
+        
+        # Check if the exact name is in our map
+        if col_name_str in width_map:
+            width = width_map[col_name_str]
+        else:
+            # Fallback for anything not in the list
+            width = 20 
+
         worksheet.set_column(col_num, col_num, width, None)
 
     # --- WRITE HEADER (Row 0) ---
-    worksheet.set_row(0, 30)
+    worksheet.set_row(0, 50) # HEADER HEIGHT 50
     for col_num, col_name in enumerate(df.columns):
         worksheet.write(0, col_num, col_name, header_format)
 
@@ -101,7 +135,6 @@ def to_excel_operations(df):
     for row_idx, row_data in df.iterrows():
         excel_row = row_idx + 1
         
-        # Check Trip ID to see if this is Data, Spacer, or Header
         cell_value = row_data.iloc[trip_id_col_idx]
         
         if pd.isna(cell_value):
@@ -110,18 +143,18 @@ def to_excel_operations(df):
             
         elif str(cell_value) == "TRIP_ID":
             # --- REPEATED HEADER ---
-            worksheet.set_row(excel_row, 30)
+            worksheet.set_row(excel_row, 50)
             for col_num, value in enumerate(row_data):
                 worksheet.write(excel_row, col_num, value, header_format)
                 
         else:
             # --- NORMAL DATA ---
-            worksheet.set_row(excel_row, 30)
+            worksheet.set_row(excel_row, 45)
             for col_num, value in enumerate(row_data):
                 col_name = df.columns[col_num]
                 
-                # Apply Time Format to specific columns
-                if col_name in ['SHIFT_TIME', 'HOME_TIME']:
+                # Apply Time Format
+                if col_name in ['SHIFT_TIME', 'HOME_TIME', 'PICKUP POINT']:
                     cell_format = time_format
                 else:
                     cell_format = base_format
@@ -190,9 +223,8 @@ def process_data(uploaded_file):
     
     final_df['Direction'] = final_df['Direction'].astype(str).str.replace('Login', 'Pickup', regex=False)
     final_df['Direction'] = final_df['Direction'].astype(str).str.replace('Logout', 'Drop', regex=False)
-    final_df.loc[final_df['Pax_no'] == 2, 'Marshall'] = np.nan
-    final_df['Marshall'] = final_df['Marshall'].astype(str).str.replace('MARSHALL', 'Guard', regex=False)
-
+    final_df.loc[final_df['Pax_no'] == 2, 'Marshall'] = ''
+    
     # --- DATE CLEANING ---
     final_df['Trip_Date'] = pd.to_datetime(final_df['Trip_Date'], errors='coerce')
     try:
@@ -217,7 +249,7 @@ def process_data(uploaded_file):
         dir_val = "Report"
     base_filename = f"{date_val} {dir_val}"
 
-    # --- PREPARE DATASETS ---
+    # --- PREPARE BILLING DATASETS ---
     billing_cols = [
         'TRIP_DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
         'GENDER', 'ADDRESS','PASSENGER_MOBILE', 'LANDMARK', 'VEHICLE_NO', 'DIRECTION', 
@@ -226,14 +258,22 @@ def process_data(uploaded_file):
     billing_cols = [c for c in billing_cols if c in final_df.columns]
     billing_df = final_df[billing_cols].copy()
 
-    # Ops Data
+    # --- PREPARE OPS DATASETS ---
     ops_df = final_df.copy()
-    ops_df['HOME_TIME'] = (ops_df['SHIFT_TIME_OBJ'] - timedelta(hours=2)).dt.time
     
+    # 1. Rename Columns (HOME_TIME -> PICKUP POINT, MARSHALL -> GUARD)
+    ops_df['HOME_TIME'] = (ops_df['SHIFT_TIME_OBJ'] - timedelta(hours=2)).dt.time
+    ops_df.rename(columns={'HOME_TIME': 'PICKUP POINT', 'MARSHALL': 'GUARD'}, inplace=True)
+    
+    # 2. Handle NaN in GUARD column
+    if 'GUARD' in ops_df.columns:
+        ops_df['GUARD'] = ops_df['GUARD'].fillna('')
+
+    # 3. Select Columns
     ops_cols = [
         'TRIP_DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
-        'GENDER', 'ADDRESS','PASSENGER_MOBILE', 'LANDMARK', 'REPORTING_LOCATION', 'VEHICLE_NO', 'DIRECTION', 
-        'HOME_TIME', 'SHIFT_TIME', 'MARSHALL'
+        'ADDRESS', 'LANDMARK', 'REPORTING_LOCATION', 'PASSENGER_MOBILE', 'VEHICLE_NO', 'DIRECTION', 
+        'PICKUP POINT', 'SHIFT_TIME', 'GUARD'
     ]
     ops_cols = [c for c in ops_cols if c in ops_df.columns]
     ops_df = ops_df[ops_cols]
