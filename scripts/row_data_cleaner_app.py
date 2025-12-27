@@ -263,17 +263,17 @@ def process_data(uploaded_file):
     
     # 1. Rename Columns (HOME_TIME -> PICKUP POINT, MARSHALL -> GUARD)
     ops_df['HOME_TIME'] = (ops_df['SHIFT_TIME_OBJ'] - timedelta(hours=2)).dt.time
-    ops_df.rename(columns={'HOME_TIME': 'PICKUP POINT', 'MARSHALL': 'GUARD'}, inplace=True)
+    ops_df.rename(columns={'HOME_TIME': 'PICKUP POINT'}, inplace=True)
     
     # 2. Handle NaN in GUARD column
-    if 'GUARD' in ops_df.columns:
-        ops_df['GUARD'] = ops_df['GUARD'].fillna('')
+    if 'MARSHALL' in ops_df.columns:
+        ops_df['MARSHALL'] = ops_df['MARSHALL'].fillna('')
 
     # 3. Select Columns
     ops_cols = [
         'TRIP_DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
         'ADDRESS', 'LANDMARK', 'REPORTING_LOCATION', 'PASSENGER_MOBILE', 'VEHICLE_NO', 'DIRECTION', 
-        'PICKUP POINT', 'SHIFT_TIME', 'GUARD'
+        'PICKUP POINT', 'SHIFT_TIME', 'MARSHALL'
     ]
     ops_cols = [c for c in ops_cols if c in ops_df.columns]
     ops_df = ops_df[ops_cols]
