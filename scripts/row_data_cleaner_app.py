@@ -2,115 +2,137 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import io
+from datetime import datetime, timedelta
 
-# --- HELPER: SAVE FORMATTED EXCEL ---
-def to_excel_with_formatting(df):
+# --- HELPER: SAVE BILLING EXCEL (SIMPLE) ---
+def to_excel_billing(df):
     """
-    Saves the dataframe to a memory buffer with:
+    Saves the dataframe for Billing:
     - Font size 13
-    - Data row height 30
-    - Empty separator row height 40
-    - Auto-fitted columns
+    - Row height 30
+    - No empty rows, no repeated headers
     """
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     
-    # Write data to sheet
     df.to_excel(writer, sheet_name='Sheet1', index=False)
     
     workbook  = writer.book
     worksheet = writer.sheets['Sheet1']
     
-    # --- DEFINE FORMATS ---
-    base_format_props = {
-        'font_size': 13,
-        'border': 1,
-        'align': 'center',
-        'valign': 'vcenter'
-    }
-
-    # Standard formats
+    # Define Formats
+    base_format = workbook.add_format({
+        'font_size': 13, 'border': 1, 'align': 'center', 'valign': 'vcenter'
+    })
     header_format = workbook.add_format({
-        **base_format_props,
-        'bold': True,
-        'text_wrap': True,
-        'fg_color': '#0070C0', 
-        'font_color': '#FFFFFF'
+        'font_size': 13, 'border': 1, 'align': 'center', 'valign': 'vcenter',
+        'bold': True, 'text_wrap': True, 'fg_color': '#0070C0', 'font_color': '#FFFFFF'
     })
     
-    text_format = workbook.add_format(base_format_props)
-    date_format = workbook.add_format(base_format_props) # You can add num_format if needed
-    time_format = workbook.add_format(base_format_props)
-    
-    # Address Format (Left align + Text Wrap)
-    address_format = workbook.add_format({
-        **base_format_props, 
-        'text_wrap': True
-    })
-
-    # Empty Row Format (No border, just white)
-    empty_row_format = workbook.add_format({
-        'font_size': 13,
-        'border': 0
-    })
-
-    # --- APPLY ROW HEIGHTS ---
-    # Header Height
-    worksheet.set_row(0, 30)
-    
-    # Loop through data to set heights based on content
-    # We check if 'TRIP_ID' is NaN to identify the empty rows we added
-    trip_id_col_idx = df.columns.get_loc("TRIP_ID") if "TRIP_ID" in df.columns else 0
-
+    # Set Row Heights
+    worksheet.set_row(0, 30) # Header
     for row_idx in range(len(df)):
-        excel_row = row_idx + 1 # +1 because header is 0
-        
-        # Check if this is one of our inserted empty rows (Trip ID is null)
-        is_empty_row = pd.isna(df.iloc[row_idx, trip_id_col_idx])
-        
-        if is_empty_row:
-            worksheet.set_row(excel_row, 40) # Requirement: Height 40 for empty rows
-        else:
-            worksheet.set_row(excel_row, 30) # Standard height 30
+        worksheet.set_row(row_idx + 1, 30)
 
-    # --- APPLY COLUMN WIDTHS & FORMATS ---
+    # Set Column Widths
     for col_num, col_name in enumerate(df.columns):
-        # Write header
         worksheet.write(0, col_num, col_name, header_format)
-        
-        # Determine width and format
-        if 'ADDRESS' in str(col_name):
-            column_width = 80
-            current_format = address_format
-        else:
-            # Calculate max length
-            max_data_len = df[col_name].astype(str).map(len).max()
-            max_len = max(max_data_len, len(str(col_name))) + 2 
-            column_width = min(max(max_len, 18), 50)
-            
-            if 'DATE' in str(col_name):
-                current_format = date_format
-                column_width = 18 
-            elif 'TIME' in str(col_name):
-                current_format = time_format
-                column_width = 12
-            else:
-                current_format = text_format
-
-        # Apply column format
-        worksheet.set_column(col_num, col_num, column_width, current_format)
+        width = 80 if 'ADDRESS' in str(col_name) else 25
+        worksheet.set_column(col_num, col_num, width, base_format)
 
     writer.close()
     output.seek(0)
     return output
 
-# --- MAIN LOGIC: PROCESS DATA ---
+# --- HELPER: SAVE OPERATIONS EXCEL (COMPLEX) ---
+def to_excel_operations(df):
+    """
+    Saves the dataframe for Operations:
+    - HOME TIME column added
+    - Empty rows (Height 40)
+    - Repeated Headers after empty rows
+    """
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    
+    # Write data (Index=False, Header=True initially)
+    df.to_excel(writer, sheet_name='Sheet1', index=False)
+    
+    workbook  = writer.book
+    worksheet = writer.sheets['Sheet1']
+    
+    # --- FORMATS ---
+    base_format = {
+        'font_size': 13, 'border': 1, 'align': 'center', 'valign': 'vcenter'
+    }
+    
+    # Normal Data
+    data_format = workbook.add_format(base_format)
+    
+    # Header Format (Blue)
+    header_format = workbook.add_format({
+        **base_format,
+        'bold': True, 'text_wrap': True, 'fg_color': '#0070C0', 'font_color': '#FFFFFF'
+    })
+    
+    # Empty Row Format (White, no border)
+    empty_row_format = workbook.add_format({'font_size': 13, 'border': 0})
+
+    # --- APPLY ROW HEIGHTS & FORMATTING ---
+    # 1. Format the very first header row
+    worksheet.set_row(0, 30)
+    
+    # 2. Loop through all data rows to check if they are Data, Empty, or Repeated Header
+    # We use the 'TRIP_ID' column to detect what kind of row it is
+    trip_id_col_idx = df.columns.get_loc("TRIP_ID") if "TRIP_ID" in df.columns else 0
+
+    for row_idx in range(len(df)):
+        excel_row = row_idx + 1
+        
+        # Get the value in the TRIP_ID column for this row
+        cell_value = df.iloc[row_idx, trip_id_col_idx]
+        
+        # LOGIC:
+        # If NaN -> It is an Spacer Row
+        # If value == "TRIP_ID" -> It is a Repeated Header
+        # Otherwise -> It is Data
+        
+        if pd.isna(cell_value):
+            # Empty Row
+            worksheet.set_row(excel_row, 40, empty_row_format)
+        elif str(cell_value) == "TRIP_ID":
+            # Repeated Header Row
+            worksheet.set_row(excel_row, 30)
+            # Apply header format to this entire row
+            for col in range(len(df.columns)):
+                worksheet.write(excel_row, col, df.iloc[row_idx, col], header_format)
+        else:
+            # Normal Data Row
+            worksheet.set_row(excel_row, 30)
+
+    # --- COLUMN WIDTHS ---
+    for col_num, col_name in enumerate(df.columns):
+        # Apply standard header format to top row
+        worksheet.write(0, col_num, col_name, header_format)
+        
+        width = 80 if 'ADDRESS' in str(col_name) else 25
+        worksheet.set_column(col_num, col_num, width, data_format)
+
+    writer.close()
+    output.seek(0)
+    return output
+
+# --- MAIN LOGIC ---
 def process_data(uploaded_file):
     # 1. Load Data
     try:
         df = pd.read_excel(uploaded_file, header=None)
     except Exception as e:
-        return None, f"Error reading file: {e}"
+        # Fallback for .xls files if xlrd is installed
+        try:
+            df = pd.read_excel(uploaded_file, header=None, engine='xlrd')
+        except:
+            return None, None, f"Error: {e}"
 
     df.drop(index=1, inplace=True)
     df.dropna(how="all", inplace=True)
@@ -122,13 +144,9 @@ def process_data(uploaded_file):
 
     # 3. Split Header vs Passenger Rows
     df[1] = df[1].astype(str)
-    
-    # Header rows (UNITED FACILITIES)
     df_headers = df[df[1].str.contains("UNITED FACILITIES", na=False)].copy()
-    
-    # Passenger rows (Start with 1-4)
     df_passengers = df[df[0].astype(str).str.match(r"^[12345]$")].copy()
-
+    
     df_headers.reset_index(drop=True, inplace=True)
     df_passengers.reset_index(drop=True, inplace=True)
 
@@ -147,108 +165,131 @@ def process_data(uploaded_file):
     }
     df_passengers_renamed = df_passengers.rename(columns=passenger_mapping)
 
-    # 5. Merge DataFrames
+    # 5. Merge
     final_df = pd.merge(df_passengers_renamed, df_headers_renamed, on='Trip_ID', how='left')
 
-    # --- DATA CLEANING ---
+    # --- CLEANING ---
     final_df['Trip_ID'] = final_df['Trip_ID'].astype(str).str.replace('T', '', regex=False)
     final_df['Vehicle_No'] = final_df['Vehicle_No'].astype(str).str.replace('-', '', regex=False)
 
-    # Split Login Time
     split_data = final_df['Driver_Login_Time'].astype(str).str.strip().str.split(' ', n=1, expand=True)
     final_df['Direction'] = split_data[0]
-    final_df['Shift_Time'] = pd.to_datetime(split_data[1], format='%H:%M', errors='coerce').dt.time
+    
+    # Store Shift Time as datetime object for calculation
+    final_df['Shift_Time_Obj'] = pd.to_datetime(split_data[1], format='%H:%M', errors='coerce')
+    final_df['Shift_Time'] = final_df['Shift_Time_Obj'].dt.time
+    
     final_df['Direction'] = final_df['Direction'].astype(str).str.replace('Login', 'Pickup', regex=False)
     final_df['Direction'] = final_df['Direction'].astype(str).str.replace('Logout', 'Drop', regex=False)
     final_df.loc[final_df['Pax_no'] == 2, 'Marshall'] = np.nan
     final_df['Marshall'] = final_df['Marshall'].astype(str).str.replace('MARSHALL', 'Guard', regex=False)
-
-    # Handle Dates
-    final_df['Trip_Date'] = pd.to_datetime(final_df['Trip_Date'], errors='coerce')
-    final_df['Date'] = final_df['Trip_Date'].dt.date
     
-    # Numeric Conversion
-    cols_to_numeric = ['Trip_ID', 'Emp_Count', 'Employee_ID', 'Pax_no']
-    final_df[cols_to_numeric] = final_df[cols_to_numeric].apply(pd.to_numeric, errors='coerce')
-
-    final_df['Trip_Date'] = final_df['Trip_Date'].astype(str)
-
-    # --- UPPERCASE & CLEANUP ---
+    # Clean up strings
     final_df.columns = final_df.columns.astype(str).str.strip().str.upper()
     str_cols = final_df.select_dtypes(include=['object']).columns
     final_df[str_cols] = final_df[str_cols].apply(lambda x: x.astype(str).str.strip().str.upper())
 
-    # --- FINAL SELECTION ---
-    desired_order = [
-        'DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
-        'GENDER', 'ADDRESS', 'VEHICLE_NO','SHIFT_TIME', 'TRIP_DATE','DRIVER_NAME', 'LANDMARK', 'DIRECTION', 
-        'EMP_COUNT', 'PAX_NO', 'MARSHALL', 'REPORTING_LOCATION'
-    ]
-    # Ensure all columns exist before reindexing
-    existing_cols = [c for c in desired_order if c in final_df.columns]
-    final_df = final_df[existing_cols]
+    # --- FILE NAMING ---
+    if 'DATE' in final_df.columns and not final_df['DATE'].empty:
+         # Attempt to find date in Trip_Date column since DATE column might be empty initially
+        try:
+            date_val = pd.to_datetime(final_df['TRIP_DATE'].iloc[0]).strftime('%d-%m-%Y')
+        except:
+            date_val = "Unknown_Date"
+    else:
+        date_val = "Unknown_Date"
 
-    # --- NEW FEATURE: INSERT EMPTY ROW AFTER EACH TRIP_ID ---
-    # We will create a list of dataframes and concatenate them with an empty row in between
+    if 'DIRECTION' in final_df.columns and not final_df['DIRECTION'].empty:
+        dir_val = str(final_df['DIRECTION'].iloc[0]).capitalize()
+    else:
+        dir_val = "Report"
+        
+    base_filename = f"{date_val} {dir_val}"
+
+    # --- PREPARE BILLING DATAFRAME (Clean, no extra cols) ---
+    billing_cols = [
+        'TRIP_DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
+        'GENDER', 'ADDRESS', 'LANDMARK', 'VEHICLE_NO', 'DIRECTION', 
+        'SHIFT_TIME', 'EMP_COUNT', 'PAX_NO', 'MARSHALL', 'REPORTING_LOCATION'
+    ]
+    # Filter columns that actually exist
+    billing_cols = [c for c in billing_cols if c in final_df.columns]
+    billing_df = final_df[billing_cols].copy()
+
+    # --- PREPARE OPERATIONS DATAFRAME (Home Time + Gaps + Headers) ---
+    ops_df = final_df.copy()
+    
+    # 1. Add HOME TIME (Shift Time - 2 Hours)
+    # We use the temp object column we created earlier
+    ops_df['HOME_TIME'] = (ops_df['SHIFT_TIME_OBJ'] - timedelta(hours=2)).dt.time
+    
+    # Select Cols
+    ops_cols = [
+        'TRIP_DATE', 'TRIP_ID', 'FLIGHT_NO.', 'EMPLOYEE_ID', 'EMPLOYEE_NAME', 
+        'GENDER', 'ADDRESS', 'LANDMARK', 'VEHICLE_NO', 'DIRECTION', 
+        'SHIFT_TIME', 'HOME_TIME', 'EMP_COUNT', 'PAX_NO', 'MARSHALL', 'REPORTING_LOCATION'
+    ]
+    ops_cols = [c for c in ops_cols if c in ops_df.columns]
+    ops_df = ops_df[ops_cols]
+
+    # 2. Insert Empty Rows AND Headers
     df_list = []
+    empty_row = pd.DataFrame([[np.nan] * len(ops_df.columns)], columns=ops_df.columns)
     
-    # Create an empty row with the same columns, filled with NaN
-    empty_row = pd.DataFrame([[np.nan] * len(final_df.columns)], columns=final_df.columns)
+    # Create a dataframe that looks like the header
+    header_row = pd.DataFrame([ops_df.columns.values], columns=ops_df.columns)
     
-    # Group by Trip ID (preserve order with sort=False)
-    groups = list(final_df.groupby('TRIP_ID', sort=False))
+    groups = list(ops_df.groupby('TRIP_ID', sort=False))
     
     for i, (trip_id, group) in enumerate(groups):
         df_list.append(group)
-        # Add empty row if it's not the very last group
         if i < len(groups) - 1:
-            df_list.append(empty_row)
+            df_list.append(empty_row)  # 40px gap
+            df_list.append(header_row) # Repeated Header
             
-    # Combine back into one dataframe
-    final_df_with_gaps = pd.concat(df_list, ignore_index=True)
+    ops_final = pd.concat(df_list, ignore_index=True)
 
-    # --- DETERMINE FILE NAME PARTS ---
-    if 'DATE' in final_df.columns and not final_df['DATE'].dropna().empty:
-        first_date = final_df['DATE'].dropna().iloc[0]
-        date_str = pd.to_datetime(first_date).strftime('%d-%m-%Y')
-    else:
-        date_str = "Unknown_Date"
-
-    if 'DIRECTION' in final_df.columns and not final_df['DIRECTION'].dropna().empty:
-        direction_str = str(final_df['DIRECTION'].dropna().iloc[0]).capitalize()
-    else:
-        direction_str = "Report"
-
-    output_filename = f"{date_str} {direction_str}.xlsx"
-
-    return final_df_with_gaps, output_filename
+    return billing_df, ops_final, base_filename
 
 # --- STREAMLIT UI ---
 st.title("Air India TripSheet Cleaner")
-st.write("Upload the raw TripSheet Excel file to process it.")
+st.write("Upload Raw File -> Get separate files for Billing and Operations")
 
 uploaded_file = st.file_uploader("Choose an Excel file", type=['xls', 'xlsx'])
 
 if uploaded_file is not None:
-    with st.spinner('Processing data...'):
-        # Run processing
-        processed_df, file_name = process_data(uploaded_file)
+    with st.spinner('Processing...'):
+        billing_df, ops_df, filename = process_data(uploaded_file)
         
-        if processed_df is not None:
-            # Show preview
+        if billing_df is not None:
             st.success("File processed successfully!")
-            st.write("Preview of cleaned data (first 10 rows):")
-            st.dataframe(processed_df.head(10))
             
-            # Convert to formatted Excel in memory
-            excel_buffer = to_excel_with_formatting(processed_df)
+            col1, col2 = st.columns(2)
             
-            # Download Button
-            st.download_button(
-                label=f"Download {file_name}",
-                data=excel_buffer,
-                file_name=file_name,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            with col1:
+                st.subheader("1. Billing Team")
+                st.write("Clean data, no empty rows.")
+                billing_buffer = to_excel_billing(billing_df)
+                st.download_button(
+                    label="Download Billing File",
+                    data=billing_buffer,
+                    file_name=f"BILLING_{filename}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                
+            with col2:
+                st.subheader("2. Operations Team")
+                st.write("Includes HOME TIME (-2hr) & Headers after gaps.")
+                ops_buffer = to_excel_operations(ops_df)
+                st.download_button(
+                    label="Download Ops File",
+                    data=ops_buffer,
+                    file_name=f"OPS_{filename}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                
+            st.write("---")
+            st.write("Preview (Billing Data):")
+            st.dataframe(billing_df.head())
         else:
-            st.error(f"Failed to process file. {file_name}") # file_name holds error msg here
+            st.error(filename) # Displays error message
